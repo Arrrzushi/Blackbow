@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,9 +9,14 @@ import {
 import Animated, {
   FadeInDown,
   FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { ChevronUp, ChevronDown, Send } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from 'expo-router';
 
 type Confession = {
   id: string;
@@ -34,6 +39,30 @@ export default function Confessions() {
   ]);
   const [newConfession, setNewConfession] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Screen entrance animation on focus
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(18);
+
+  useFocusEffect(
+    useCallback(() => {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 18;
+      screenOpacity.value = withTiming(1, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+      screenTranslateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, []),
+  );
+
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
 
   const handleVote = (id: string, increment: number) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -62,7 +91,7 @@ export default function Confessions() {
   };
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, screenStyle]}>
       <Animated.Text
         entering={FadeInDown.delay(200)}
         style={styles.title}>
@@ -122,7 +151,7 @@ export default function Confessions() {
           </Animated.View>
         ))}
       </ScrollView>
-    </View>
+    </Animated.View>
   );
 }
 

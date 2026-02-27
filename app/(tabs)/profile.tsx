@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -9,10 +9,15 @@ import {
 import Animated, {
   FadeInDown,
   FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
 import { CreditCard as Edit2 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from 'expo-router';
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
@@ -28,6 +33,30 @@ export default function Profile() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsEditing(!isEditing);
   };
+
+  // Screen entrance animation on focus
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(18);
+
+  useFocusEffect(
+    useCallback(() => {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 18;
+      screenOpacity.value = withTiming(1, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+      screenTranslateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, []),
+  );
+
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
 
   const ProfileCard = () => (
     <Animated.View
@@ -108,14 +137,14 @@ export default function Profile() {
   );
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, screenStyle]}>
       <Animated.Text
         entering={FadeInDown.delay(200)}
         style={styles.title}>
         Profile
       </Animated.Text>
       <ProfileCard />
-    </View>
+    </Animated.View>
   );
 }
 
@@ -150,7 +179,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    
+
     marginBottom: 20,
   },
   editButton: {

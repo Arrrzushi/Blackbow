@@ -1,10 +1,16 @@
+import { useCallback } from 'react';
 import { View, StyleSheet, Pressable, ScrollView } from 'react-native';
 import Animated, {
   FadeInDown,
   FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Calendar } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from 'expo-router';
 
 const EVENTS = [
   {
@@ -31,30 +37,56 @@ export default function Events() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   };
 
-  return (
-    <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
-      <Animated.Text entering={FadeInDown.delay(200)} style={styles.title}>
-        Upcoming Events
-      </Animated.Text>
+  // Screen entrance animation on focus
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(18);
 
-      {EVENTS.map((event, index) => (
-        <Animated.View key={event.id} entering={FadeInUp.delay(index * 200)} style={styles.eventCard}>
-          <Animated.Image source={{ uri: `${event.image}?w=800` }} style={styles.eventImage} />
-          <View style={styles.eventContent}>
-            <Animated.Text style={styles.eventTitle}>{event.title}</Animated.Text>
-            <View style={styles.eventDetails}>
-              <Calendar size={16} color="#666" />
-              <Animated.Text style={styles.eventDate}>{event.date}</Animated.Text>
+  useFocusEffect(
+    useCallback(() => {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 18;
+      screenOpacity.value = withTiming(1, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+      screenTranslateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, []),
+  );
+
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
+
+  return (
+    <Animated.View style={[{ flex: 1 }, screenStyle]}>
+      <ScrollView contentContainerStyle={styles.scrollContainer} showsVerticalScrollIndicator={false}>
+        <Animated.Text entering={FadeInDown.delay(200)} style={styles.title}>
+          Upcoming Events
+        </Animated.Text>
+
+        {EVENTS.map((event, index) => (
+          <Animated.View key={event.id} entering={FadeInUp.delay(index * 200)} style={styles.eventCard}>
+            <Animated.Image source={{ uri: `${event.image}?w=800` }} style={styles.eventImage} />
+            <View style={styles.eventContent}>
+              <Animated.Text style={styles.eventTitle}>{event.title}</Animated.Text>
+              <View style={styles.eventDetails}>
+                <Calendar size={16} color="#666" />
+                <Animated.Text style={styles.eventDate}>{event.date}</Animated.Text>
+              </View>
+              <Animated.Text style={styles.eventLocation}>📍 {event.location}</Animated.Text>
+              <Animated.Text style={styles.eventDescription}>{event.description}</Animated.Text>
+              <Pressable onPress={() => handleRSVP(event.id)} style={styles.rsvpButton}>
+                <Animated.Text style={styles.rsvpButtonText}>RSVP Now</Animated.Text>
+              </Pressable>
             </View>
-            <Animated.Text style={styles.eventLocation}>📍 {event.location}</Animated.Text>
-            <Animated.Text style={styles.eventDescription}>{event.description}</Animated.Text>
-            <Pressable onPress={() => handleRSVP(event.id)} style={styles.rsvpButton}>
-              <Animated.Text style={styles.rsvpButtonText}>RSVP Now</Animated.Text>
-            </Pressable>
-          </View>
-        </Animated.View>
-      ))}
-    </ScrollView>
+          </Animated.View>
+        ))}
+      </ScrollView>
+    </Animated.View>
   );
 }
 

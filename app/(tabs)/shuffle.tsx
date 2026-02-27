@@ -4,6 +4,8 @@ import { View, StyleSheet, Dimensions, Pressable } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   withSpring,
+  withTiming,
+  Easing,
   useSharedValue,
   interpolate,
   runOnJS,
@@ -15,6 +17,7 @@ import {
 } from 'react-native-gesture-handler';
 import { Check, X } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useFocusEffect } from 'expo-router';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = SCREEN_WIDTH * 0.8;
@@ -41,6 +44,30 @@ export default function Shuffle() {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
   const cardRotate = useSharedValue(0);
+
+  // Screen entrance animation on focus
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(18);
+
+  useFocusEffect(
+    useCallback(() => {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 18;
+      screenOpacity.value = withTiming(1, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+      screenTranslateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, []),
+  );
+
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
 
   const handleSwipeComplete = useCallback(
     (direction: 'left' | 'right') => {
@@ -95,20 +122,20 @@ export default function Shuffle() {
 
   if (currentIndex >= DUMMY_PROFILES.length) {
     return (
-      <View style={styles.container}>
+      <Animated.View style={[styles.container, screenStyle]}>
         <Animated.Text
           entering={FadeInDown}
           style={styles.noMoreText}>
           No more profiles to show!
         </Animated.Text>
-      </View>
+      </Animated.View>
     );
   }
 
   const profile = DUMMY_PROFILES[currentIndex];
 
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, screenStyle]}>
       <GestureDetector gesture={gesture}>
         <Animated.View style={[styles.card, rStyle]}>
           <Animated.Image
@@ -146,7 +173,7 @@ export default function Shuffle() {
           <Check size={32} color="white" />
         </Pressable>
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
