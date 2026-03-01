@@ -1,11 +1,16 @@
+import { useCallback } from 'react';
 import { View, StyleSheet, Pressable } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, {
   FadeInDown,
   FadeInUp,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  Easing,
 } from 'react-native-reanimated';
 import { Users, Calendar, MessageSquare } from 'lucide-react-native';
-import { Link } from 'expo-router';
+import { Link, useFocusEffect } from 'expo-router';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -39,8 +44,31 @@ const DashboardCard = ({
 );
 
 export default function Dashboard() {
+  const screenOpacity = useSharedValue(0);
+  const screenTranslateY = useSharedValue(18);
+
+  useFocusEffect(
+    useCallback(() => {
+      screenOpacity.value = 0;
+      screenTranslateY.value = 18;
+      screenOpacity.value = withTiming(1, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+      screenTranslateY.value = withTiming(0, {
+        duration: 350,
+        easing: Easing.out(Easing.cubic),
+      });
+    }, []),
+  );
+
+  const screenStyle = useAnimatedStyle(() => ({
+    opacity: screenOpacity.value,
+    transform: [{ translateY: screenTranslateY.value }],
+  }));
+
   return (
-    <View style={styles.container}>
+    <Animated.View style={[styles.container, screenStyle]}>
       <Animated.Text
         entering={FadeInDown.delay(200)}
         style={styles.title}>
@@ -69,7 +97,7 @@ export default function Dashboard() {
           delay={800}
         />
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
